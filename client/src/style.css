@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    min-height: 100vh;
+    color: #1f2933; /* slate-800-ish */
+    /* Use a custom CSS gradient instead of Tailwind utilities to avoid unknown class errors */
+    background: linear-gradient(135deg, #ffc5d9 0%, #ffffff 40%, #9ee5d0 100%);
+    font-family: theme("fontFamily.sans");
+  }
+}
