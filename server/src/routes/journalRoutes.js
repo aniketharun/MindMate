@@ -3,6 +3,7 @@ import { protect } from "../middleware/authMiddleware.js";
 import { JournalEntry } from "../models/JournalEntry.js";
 import { detectEmotion } from "../services/emotionService.js";
 import { getGeminiClient } from "../services/openaiClient.js";
+import { upsertDailyLog } from "../services/dailyLogService.js";
 
 const router = express.Router();
 
@@ -43,6 +44,8 @@ ${content}`;
       date: parsedDate,
       aiReflection,
     });
+
+    await upsertDailyLog(req.user._id, emotion, "journal");
 
     return res.status(201).json(entry);
   } catch (err) {

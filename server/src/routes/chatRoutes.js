@@ -3,7 +3,9 @@ import { protect } from "../middleware/authMiddleware.js";
 import { detectEmotion } from "../services/emotionService.js";
 import { getGeminiClient } from "../services/openaiClient.js";
 import { ChatMessage } from "../models/ChatMessage.js";
+import { ChatSession } from "../models/ChatSession.js";
 import { User } from "../models/User.js";
+import { upsertDailyLog } from "../services/dailyLogService.js";
 
 const router = express.Router();
 
@@ -65,6 +67,43 @@ const containsCrisisLanguage = (text) => {
   return crisisKeywords.some((k) => lower.includes(k));
 };
 
+const shouldStartNewSession = (lastSession) => {
+  if (!lastSession) return true;
+
+  const endedAt = lastSession.endedAt || lastSession.startedAt;
+  const cutoff2H = new Date(Date.now() - 2 * 60 * 60 * 1000);
+  if (endedAt < cutoff2H) return true;
+
+  const lastDate = new Date(endedAt);
+  const today = new Date();
+  const isSameDay =
+    lastDate.getFullYear() === today.getFullYear() &&
+    lastDate.getMonth() === today.getMonth() &&
+    lastDate.getDate() === today.getDate();
+  if (!isSameDay) return true;
+
+  return false;
+};
+
+const computeDominantEmotion = async (sessionId) => {
+  const messages = await ChatMessage.find({ sessionId }).lean();
+  const counts = { happy: 0, calm: 0, anxious: 0, sad: 0, angry: 0, neutral: 0 };
+  messages.forEach((m) => {
+    if (m.emotion && counts[m.emotion] !== undefined) {
+      counts[m.emotion] += 1;
+    }
+  });
+  let top = "neutral";
+  let max = -1;
+  Object.entries(counts).forEach(([k, v]) => {
+    if (v > max) {
+      max = v;
+      top = k;
+    }
+  });
+  return top;
+};
+
 router.post("/", protect, async (req, res) => {
   try {
     const { message } = req.body;
@@ -75,14 +114,54 @@ router.post("/", protect, async (req, res) => {
     const { emotion, confidence } = detectEmotion(message);
     const user = await User.findById(req.user._id);
 
-    // Save user message
-    await ChatMessage.create({
+    let lastSession = await ChatSession.findOne({ user: req.user._id })
+      .sort({ startedAt: -1 })
+      .lean();
+
+    let session;
+    if (!lastSession || shouldStartNewSession(lastSession)) {
+      if (lastSession) {
+        await ChatSession.findByIdAndUpdate(lastSession._id, {
+          endedAt: new Date(),
+          dominantEmotion: await computeDominantEmotion(lastSession._id),
+          messageCount: await ChatMessage.countDocuments({ sessionId: lastSession._id }),
+        });
+      }
+
+      const title = message.trim().length >= 5
+        ? message.trim().slice(0, 40) + (message.trim().length > 40 ? "..." : "")
+        : `Chat on ${new Date().toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}`;
+
+      session = await ChatSession.create({
+        user: req.user._id,
+        title,
+        dominantEmotion: emotion,
+        messageCount: 0,
+      });
+    } else {
+      session = await ChatSession.findById(lastSession._id);
+      if (!session) {
+        return res.status(500).json({ message: "Unable to load session" });
+      }
+      if (!session.title || session.title.startsWith("Chat on")) {
+        const title = message.trim().length >= 5
+          ? message.trim().slice(0, 40) + (message.trim().length > 40 ? "..." : "")
+          : session.title;
+        session.title = title;
+      }
+    }
+
+    const userMessage = await ChatMessage.create({
       user: req.user._id,
+      sessionId: session._id,
       role: "user",
       content: message,
       emotion,
       emotionConfidence: confidence,
     });
+
+    session.messageCount = await ChatMessage.countDocuments({ sessionId: session._id });
+    await session.save();
 
     const emotionBehavior = buildEmotionBehavior(emotion);
     const tonePreference = buildUserTonePreference(user?.preferredTone);
@@ -117,11 +196,17 @@ Always ask one gentle follow-up question to help the user reflect more, unless t
 
     const assistantMessage = await ChatMessage.create({
       user: req.user._id,
+      sessionId: session._id,
       role: "assistant",
       content: reply,
       emotion,
       emotionConfidence: confidence,
     });
+
+    session.messageCount = await ChatMessage.countDocuments({ sessionId: session._id });
+    await session.save();
+
+    await upsertDailyLog(req.user._id, emotion, "chat");
 
     return res.json({
       reply: assistantMessage.content,
@@ -146,6 +231,36 @@ router.get("/history", protect, async (req, res) => {
     return res.json(messages);
   } catch (err) {
     return res.status(500).json({ message: "Failed to load chat history" });
+  }
+});
+
+// Get sessions
+router.get("/sessions", protect, async (req, res) => {
+  try {
+    const sessions = await ChatSession.find({ user: req.user._id })
+      .sort({ startedAt: -1 })
+      .limit(30)
+      .lean();
+    return res.json(sessions);
+  } catch (err) {
+    return res.status(500).json({ message: "Failed to load sessions" });
+  }
+});
+
+router.get("/sessions/:sessionId/messages", protect, async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const session = await ChatSession.findOne({ _id: sessionId, user: req.user._id });
+    if (!session) {
+      return res.status(404).json({ message: "Session not found" });
+    }
+    const messages = await ChatMessage.find({ sessionId })
+      .sort({ createdAt: 1 })
+      .select("role content emotion createdAt")
+      .lean();
+    return res.json(messages);
+  } catch (err) {
+    return res.status(500).json({ message: "Failed to load session messages" });
   }
 });
 

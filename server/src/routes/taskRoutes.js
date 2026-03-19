@@ -1,6 +1,7 @@
 import express from "express";
 import { protect } from "../middleware/authMiddleware.js";
 import { Task } from "../models/Task.js";
+import { upsertDailyLog } from "../services/dailyLogService.js";
 
 const router = express.Router();
 
@@ -91,6 +92,9 @@ router.patch("/:id/toggle", protect, async (req, res) => {
     }
     task.completed = !task.completed;
     await task.save();
+    if (task.completed) {
+      await upsertDailyLog(req.user._id, task.emotion || "neutral", "task");
+    }
     return res.json(task);
   } catch (err) {
     return res.status(500).json({ message: "Failed to update task" });

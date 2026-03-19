@@ -56,18 +56,18 @@ const TasksPage: React.FC = () => {
   return (
     <div className="space-y-4">
       <div className="bg-white/80 rounded-3xl shadow-lg p-4">
-        <h2 className="text-sm font-semibold text-deepIndigo mb-1">
+        <h2 className="text-2xl text-deepIndigo mb-1 mindmate-title">
           Tasks to feel a bit better
         </h2>
-        <p className="text-xs text-slate-500 mb-3">
+        <p className="text-sm text-slate-500 mb-4">
           Tiny, gentle suggestions based on how you&apos;re feeling. Aim for
           small, kind steps only.
         </p>
         <div className="flex items-center justify-between mb-3 gap-3">
-          <div className="flex items-center gap-2 text-xs">
-            <span className="text-slate-600">Current emotion</span>
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-slate-600 font-semibold">Current emotion</span>
             <select
-              className="rounded-xl border border-slate-200 px-2 py-1 text-xs bg-white"
+              className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm bg-white"
               value={emotion}
               onChange={(e) => setEmotion(e.target.value)}
             >
@@ -82,14 +82,30 @@ const TasksPage: React.FC = () => {
             type="button"
             onClick={handleGenerate}
             disabled={loading}
-            className="bg-deepIndigo text-white text-xs font-medium rounded-xl px-3 py-1.5 shadow disabled:opacity-60"
-            style={{ backgroundColor: "#312e81", color: "#ffffff" }}
+            className="bg-deepIndigo text-white text-sm font-bold rounded-xl px-4 py-2 shadow-lg disabled:opacity-60"
+            style={{
+              backgroundColor: "#312e81",
+              color: "#ffffff",
+              transition: "transform 0.15s, box-shadow 0.15s, filter 0.15s",
+            }}
+            onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => {
+              if (!loading) {
+                (e.currentTarget as HTMLElement).style.transform = "scale(1.05)";
+                (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 14px rgba(49,46,129,0.4)";
+                (e.currentTarget as HTMLElement).style.filter = "brightness(1.12)";
+              }
+            }}
+            onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => {
+              (e.currentTarget as HTMLElement).style.transform = "scale(1)";
+              (e.currentTarget as HTMLElement).style.boxShadow = "";
+              (e.currentTarget as HTMLElement).style.filter = "";
+            }}
           >
             {loading ? "Refreshing..." : "Generate tasks"}
           </button>
         </div>
         <div className="mt-2">
-          <div className="flex justify-between text-[11px] text-slate-500 mb-1">
+          <div className="flex justify-between text-xs font-semibold text-slate-500 mb-1">
             <span>Progress</span>
             <span>{progress}%</span>
           </div>
@@ -105,16 +121,16 @@ const TasksPage: React.FC = () => {
         </div>
       </div>
       <div className="bg-white/80 rounded-3xl shadow-lg p-4">
-        <h3 className="text-sm font-semibold text-deepIndigo mb-2">
+        <h3 className="text-base font-bold text-deepIndigo mb-3">
           Today&apos;s checklist
         </h3>
         {tasks.length === 0 && (
-          <p className="text-xs text-slate-500">
+          <p className="text-sm text-slate-500">
             No tasks yet. Choose how you&apos;re feeling and generate a few
             gentle ideas.
           </p>
         )}
-        <ul className="space-y-2 text-sm">
+        <ul className="space-y-3 text-base">
           {tasks.map((t) => (
             <li
               key={t._id}
@@ -123,14 +139,14 @@ const TasksPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => toggleTask(t._id)}
-                className={`mt-0.5 w-4 h-4 rounded-full border flex items-center justify-center ${
+                className={`mt-1 w-5 h-5 rounded-full border flex items-center justify-center ${
                   t.completed
-                    ? "bg-softBlue border-softBlue"
+                    ? "bg-softBlue border-softBlue shadow-sm"
                     : "border-slate-300"
                 }`}
               >
                 {t.completed && (
-                  <span className="w-2 h-2 rounded-full bg-deepIndigo" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-deepIndigo" />
                 )}
               </button>
               <div className="flex-1">

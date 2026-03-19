@@ -97,6 +97,35 @@ export const api = {
     if (!res.ok) throw new Error("Failed to generate tasks");
     return res.json();
   },
+  async getDailyLogs(year: number, month: number) {
+    const res = await fetch(`${API_BASE}/logs?year=${year}&month=${month}`, {
+      headers: { ...authHeaders() },
+    });
+    if (!res.ok) throw new Error("Failed to load mood logs");
+    return res.json();
+  },
+  async backfillDailyLogs() {
+    const res = await fetch(`${API_BASE}/logs/backfill`, {
+      method: "POST",
+      headers: { ...authHeaders() },
+    });
+    if (!res.ok) throw new Error("Failed to backfill mood logs");
+    return res.json();
+  },
+  async listChatSessions() {
+    const res = await fetch(`${API_BASE}/chat/sessions`, {
+      headers: { ...authHeaders() },
+    });
+    if (!res.ok) throw new Error("Failed to load past sessions");
+    return res.json();
+  },
+  async getSessionMessages(sessionId: string) {
+    const res = await fetch(`${API_BASE}/chat/sessions/${sessionId}/messages`, {
+      headers: { ...authHeaders() },
+    });
+    if (!res.ok) throw new Error("Failed to load session messages");
+    return res.json();
+  },
   async toggleTask(id: string) {
     const res = await fetch(`${API_BASE}/tasks/${id}/toggle`, {
       method: "PATCH",

@@ -1,11 +1,24 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Pacifico&display=swap');
 
 @layer base {
+  *, *::before, *::after {
+    font-family: "Nunito", "Segoe UI", sans-serif !important;
+  }
   body {
     min-height: 100vh;
-    color: #1f2933; /* slate-800-ish */
-    /* Use a custom CSS gradient instead of Tailwind utilities to avoid unknown class errors */
+    color: #1f2933;
     background: linear-gradient(135deg, #ffc5d9 0%, #ffffff 40%, #9ee5d0 100%);
-    font-family: theme("fontFamily.sans");
+    background-attachment: fixed;
+    background-size: cover;
+    font-family: "Nunito", "Segoe UI", sans-serif;
+    font-size: 17px;
+  }
+
+  /* MindMate title class — huge & cursive */
+  .mindmate-title {
+    font-family: "Pacifico", cursive !important;
+    font-weight: 400;
+    letter-spacing: 0.5px;
   }
 }

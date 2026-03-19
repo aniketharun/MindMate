@@ -7,6 +7,7 @@ import chatRoutes from "./routes/chatRoutes.js";
 import journalRoutes from "./routes/journalRoutes.js";
 import taskRoutes from "./routes/taskRoutes.js";
 import profileRoutes from "./routes/profileRoutes.js";
+import logRoutes from "./routes/logRoutes.js";
 import { notFound, errorHandler } from "./middleware/errorMiddleware.js";
 
 dotenv.config();
@@ -28,6 +29,7 @@ app.use("/api/chat", chatRoutes);
 app.use("/api/journals", journalRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/profile", profileRoutes);
+app.use("/api/logs", logRoutes);
 
 // Error handlers
 app.use(notFound);
