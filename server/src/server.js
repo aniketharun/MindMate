@@ -16,10 +16,19 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: [
-    "http://localhost:5173",
-    "https://mind-mate-three-rho.vercel.app"
-  ],
+  origin: (origin, callback) => {
+    // Allow requests with no origin (curl, Postman, etc.)
+    if (!origin) return callback(null, true);
+    const allowed = [
+      /^https:\/\/.*\.vercel\.app$/,   // any Vercel deployment
+      /^http:\/\/localhost:\d+$/,       // local dev
+    ];
+    if (allowed.some((pattern) => pattern.test(origin))) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS blocked for origin: ${origin}`));
+    }
+  },
   credentials: true,
 }));
 app.use(express.json());
